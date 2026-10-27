@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Millycozy Airbnb Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-12">
+    <!-- Navigation -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-slate-700/50 bg-slate-900/90 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-teal-500/20 text-teal-400 rounded-lg">
+                        <i class="fa-solid fa-house-user text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg text-white leading-tight">MILLYCOZY</h1>
+                        <p class="text-xs text-slate-400">Airbnb Management System</p>
+                    </div>
+                </div>
+                <nav class="hidden md:flex space-x-1">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition text-teal-400 bg-slate-800"><i class="fa-solid fa-chart-pie mr-2"></i>Dashboard</button>
+                    <button onclick="switchTab('bookings')" id="nav-bookings" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800"><i class="fa-solid fa-calendar-check mr-2"></i>Booking Log</button>
+                    <button onclick="switchTab('properties')" id="nav-properties" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800"><i class="fa-solid fa-building mr-2"></i>Properties</button>
+                    <button onclick="switchTab('matrix')" id="nav-matrix" class="nav-btn px-4 py-2 rounded-lg text-sm font-medium transition text-slate-300 hover:bg-slate-800"><i class="fa-solid fa-table-cells mr-2"></i>Availability Matrix</button>
+                </nav>
+                <div class="flex items-center space-x-2">
+                    <button onclick="resetData()" title="Reset to default data" class="px-3 py-1.5 bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 rounded-lg text-xs font-semibold border border-rose-500/30 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-rotate-left"></i> Reset Data
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Navigation -->
+        <div class="md:hidden flex overflow-x-auto border-t border-slate-800 p-2 gap-1 custom-scrollbar">
+            <button onclick="switchTab('dashboard')" id="m-nav-dashboard" class="px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap text-teal-400 bg-slate-800"><i class="fa-solid fa-chart-pie mr-1"></i>Dashboard</button>
+            <button onclick="switchTab('bookings')" id="m-nav-bookings" class="px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap text-slate-300 hover:bg-slate-800"><i class="fa-solid fa-calendar-check mr-1"></i>Bookings</button>
+            <button onclick="switchTab('properties')" id="m-nav-properties" class="px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap text-slate-300 hover:bg-slate-800"><i class="fa-solid fa-building mr-1"></i>Properties</button>
+            <button onclick="switchTab('matrix')" id="m-nav-matrix" class="px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap text-slate-300 hover:bg-slate-800"><i class="fa-solid fa-table-cells mr-1"></i>Matrix</button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        <!-- Toast Notification -->
+        <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-teal-600 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-2">
+            <i class="fa-solid fa-circle-check"></i> <span id="toast-msg">Action completed</span>
+        </div>
+
+        <!-- TAB 1: DASHBOARD -->
+        <section id="tab-dashboard" class="tab-content space-y-6">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div class="glass-panel p-4 rounded-xl">
+                    <p class="text-xs text-slate-400 font-medium">Total Gross Income</p>
+                    <h3 class="text-lg md:text-xl font-bold text-teal-400 mt-1" id="dash-gross">KES 0</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">From all bookings</p>
+                </div>
+                <div class="glass-panel p-4 rounded-xl">
+                    <p class="text-xs text-slate-400 font-medium">Total Net Income</p>
+                    <h3 class="text-lg md:text-xl font-bold text-emerald-400 mt-1" id="dash-net">KES 0</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">After fees & expenses</p>
+                </div>
+                <div class="glass-panel p-4 rounded-xl">
+                    <p class="text-xs text-slate-400 font-medium">Fees & Expenses</p>
+                    <h3 class="text-lg md:text-xl font-bold text-rose-400 mt-1" id="dash-fees">KES 0</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">Platforms + Cleaning + Misc</p>
+                </div>
+                <div class="glass-panel p-4 rounded-xl">
+                    <p class="text-xs text-slate-400 font-medium">Nights Occupied</p>
+                    <h3 class="text-lg md:text-xl font-bold text-amber-400 mt-1" id="dash-nights">0</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">Total booked nights</p>
+                </div>
+                <div class="glass-panel p-4 rounded-xl">
+                    <p class="text-xs text-slate-400 font-medium">Avg Revenue / Night</p>
+                    <h3 class="text-lg md:text-xl font-bold text-cyan-400 mt-1" id="dash-avg">KES 0</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">Gross / total nights</p>
+                </div>
+                <div class="glass-panel p-4 rounded-xl">
+                    <p class="text-xs text-slate-400 font-medium">Monthly Fixed Costs</p>
+                    <h3 class="text-lg md:text-xl font-bold text-purple-400 mt-1" id="dash-fixed">KES 0</h3>
+                    <p class="text-[10px] text-slate-400 mt-1" id="dash-fixed-coverage">Portfolio fixed commitment</p>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass-panel p-5 rounded-xl">
+                    <h3 class="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column text-teal-400"></i> Gross Revenue by Property
+                    </h3>
+                    <div class="h-64">
+                        <canvas id="chartRevenue"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel p-5 rounded-xl">
+                    <h3 class="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-emerald-400"></i> Monthly Financial Overview
+                    </h3>
+                    <div class="h-64">
+                        <canvas id="chartMonthly"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Property Breakdown Table -->
+            <div class="glass-panel rounded-xl p-5 overflow-hidden">
+                <h3 class="text-sm font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-amber-400"></i> Performance Breakdown by Property
+                </h3>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-800/80 text-slate-400 uppercase font-semibold">
+                            <tr>
+                                <th class="p-3">Property Name</th>
+                                <th class="p-3">Location</th>
+                                <th class="p-3 text-center">Bookings</th>
+                                <th class="p-3 text-center">Nights</th>
+                                <th class="p-3 text-right">Fixed Costs</th>
+                                <th class="p-3 text-right">Gross Revenue</th>
+                                <th class="p-3 text-right">Net Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-property-table" class="divide-y divide-slate-800">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: BOOKING LOG -->
+        <section id="tab-bookings" class="tab-content hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-check text-teal-400"></i> Booking Log & Reservations
+                </h2>
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button onclick="exportBookingsCSV()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition flex items-center gap-2">
+                        <i class="fa-solid fa-file-csv text-emerald-400"></i> Export CSV
+                    </button>
+                    <button onclick="openBookingModal()" class="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-slate-950 font-semibold text-xs rounded-lg transition flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> New Booking
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="glass-panel p-4 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input type="text" id="booking-search" oninput="renderBookings()" placeholder="Search guest name or property..." class="bg-slate-800/90 border border-slate-700 text-xs text-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-teal-400">
+                <select id="booking-filter-property" onchange="renderBookings()" class="bg-slate-800/90 border border-slate-700 text-xs text-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-teal-400">
+                    <option value="">All Properties</option>
+                </select>
+                <select id="booking-sort" onchange="renderBookings()" class="bg-slate-800/90 border border-slate-700 text-xs text-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-teal-400">
+                    <option value="checkin-desc">Check-in: Latest First</option>
+                    <option value="checkin-asc">Check-in: Earliest First</option>
+                    <option value="gross-desc">Gross Income: Highest</option>
+                </select>
+            </div>
+
+            <!-- Bookings Table -->
+            <div class="glass-panel rounded-xl overflow-hidden">
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-800/80 text-slate-400 uppercase font-semibold">
+                            <tr>
+                                <th class="p-3">Property</th>
+                                <th class="p-3">Guest</th>
+                                <th class="p-3">Dates</th>
+                                <th class="p-3 text-center">Nights</th>
+                                <th class="p-3 text-right">Nightly Rate</th>
+                                <th class="p-3 text-right">Cleaning</th>
+                                <th class="p-3 text-right">Platform Fees</th>
+                                <th class="p-3 text-right">Other Exp.</th>
+                                <th class="p-3 text-right">Gross</th>
+                                <th class="p-3 text-right">Net</th>
+                                <th class="p-3 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="booking-table-body" class="divide-y divide-slate-800">
+                            <!-- Dynamic -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: PROPERTIES -->
+        <section id="tab-properties" class="tab-content hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-building text-teal-400"></i> Property Portfolio
+                    </h2>
+                    <p class="text-xs text-slate-400">Manage your Airbnb units and monthly operational costs</p>
+                </div>
+                <button onclick="openPropertyModal()" class="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-slate-950 font-semibold text-xs rounded-lg transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Add Property Unit
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="property-cards-container">
+                <!-- Cards render dynamically -->
+            </div>
+        </section>
+
+        <!-- TAB 4: AVAILABILITY MATRIX -->
+        <section id="tab-matrix" class="tab-content hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-table-cells text-teal-400"></i> Availability & Occupancy Calendar
+                    </h2>
+                    <p class="text-xs text-slate-400">Interactive timeline of units and guest check-ins</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select id="matrix-year" onchange="renderMatrix()" class="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded-lg px-3 py-2 font-semibold text-teal-400">
+                        <!-- Populated dynamically -->
+                    </select>
+                    <select id="matrix-month" onchange="renderMatrix()" class="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded-lg px-3 py-2 font-semibold">
+                        <option value="0">January</option>
+                        <option value="1">February</option>
+                        <option value="2">March</option>
+                        <option value="3">April</option>
+                        <option value="4">May</option>
+                        <option value="5">June</option>
+                        <option value="6">July</option>
+                        <option value="7">August</option>
+                        <option value="8">September</option>
+                        <option value="9">October</option>
+                        <option value="10">November</option>
+                        <option value="11">December</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-xl p-4 overflow-x-auto custom-scrollbar">
+                <div id="matrix-grid-container">
+                    <!-- Calendar Matrix dynamic rendering -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- PROPERTY MODAL -->
+    <div id="property-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="prop-modal-title" class="text-base font-bold text-white">Add New Property Unit</h3>
+                <button onclick="closePropertyModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="property-form" onsubmit="handleSaveProperty(event)" class="space-y-4">
+                <input type="hidden" id="prop-id">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Property Name *</label>
+                    <input type="text" id="prop-name" required placeholder="e.g. Unit 11 - Kilimani Ridge" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Location *</label>
+                        <input type="text" id="prop-location" required placeholder="e.g. Westlands" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Bedrooms *</label>
+                        <input type="number" id="prop-bedrooms" required min="1" value="1" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Monthly Fixed Costs (KES) *</label>
+                    <input type="number" id="prop-fixed-cost" required min="0" placeholder="e.g. 75000" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closePropertyModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-slate-300">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-slate-950 text-xs font-bold rounded-lg">Save Unit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- BOOKING MODAL -->
+    <div id="booking-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-panel bg-slate-900 border border-slate-700 rounded-xl w-full max-w-lg p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="booking-modal-title" class="text-base font-bold text-white">Record New Booking</h3>
+                <button onclick="closeBookingModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="booking-form" onsubmit="handleSaveBooking(event)" class="space-y-4">
+                <input type="hidden" id="book-id">
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Select Property Unit *</label>
+                    <select id="book-prop-name" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                        <!-- Populated -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Guest Name *</label>
+                    <input type="text" id="book-guest" required placeholder="e.g. John Doe" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Check-In Date *</label>
+                        <input type="date" id="book-checkin" required onchange="calculateBookingTotal()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Check-Out Date *</label>
+                        <input type="date" id="book-checkout" required onchange="calculateBookingTotal()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Nightly Rate (KES) *</label>
+                        <input type="number" id="book-rate" required min="0" oninput="calculateBookingTotal()" placeholder="e.g. 8000" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Cleaning Fee (KES)</label>
+                        <input type="number" id="book-cleaning" min="0" value="0" oninput="calculateBookingTotal()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Platform Fees (KES)</label>
+                        <input type="number" id="book-platform" min="0" value="0" oninput="calculateBookingTotal()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Other Guest Exp. (KES)</label>
+                        <input type="number" id="book-other" min="0" value="0" oninput="calculateBookingTotal()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                    </div>
+                </div>
+
+                <!-- Live Auto Calculation Display -->
+                <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700 grid grid-cols-3 gap-2 text-center">
+                    <div>
+                        <p class="text-[10px] text-slate-400">Nights</p>
+                        <p id="calc-nights" class="text-sm font-bold text-teal-400">0</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-slate-400">Gross Income</p>
+                        <p id="calc-gross" class="text-sm font-bold text-amber-400">KES 0</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-slate-400">Net Income</p>
+                        <p id="calc-net" class="text-sm font-bold text-emerald-400">KES 0</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeBookingModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-slate-300">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-teal-500 hover:bg-teal-600 text-slate-950 text-xs font-bold rounded-lg">Save Booking</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // DEFAULT INITIAL DATA
+        const DEFAULT_PROPERTIES = [
+            { id: "U01", name: "Unit 1 - Westlands Haven", location: "Westlands", bedrooms: 2, fixedCost: 80000 },
+            { id: "U02", name: "Unit 2 - Kilimani Studio", location: "Kilimani", bedrooms: 1, fixedCost: 45000 },
+            { id: "U03", name: "Unit 3 - Karen Cottage", location: "Karen", bedrooms: 3, fixedCost: 120000 },
+            { id: "U04", name: "Unit 4 - Lavington Loft", location: "Lavington", bedrooms: 2, fixedCost: 90000 },
+            { id: "U05", name: "Unit 5 - Parklands View", location: "Parklands", bedrooms: 2, fixedCost: 75000 },
+            { id: "U06", name: "Unit 6 - Kileleshwa Pad", location: "Kileleshwa", bedrooms: 1, fixedCost: 50000 },
+            { id: "U07", name: "Unit 7 - CBD Executive", location: "CBD", bedrooms: 1, fixedCost: 60000 },
+            { id: "U08", name: "Unit 8 - Nyari Villa", location: "Nyari", bedrooms: 4, fixedCost: 150000 },
+            { id: "U09", name: "Unit 9 - Runda Estate", location: "Runda", bedrooms: 4, fixedCost: 180000 },
+            { id: "U10", name: "Unit 10 - Ngong Retreat", location: "Ngong", bedrooms: 2, fixedCost: 65000 }
+        ];
+
+        const DEFAULT_BOOKINGS = [
+            { id: "B1", propertyName: "Unit 1 - Westlands Haven", checkin: "2024-01-10", checkout: "2024-01-15", guest: "John Doe", rate: 8000, cleaning: 2000, platform: 1500, other: 0 },
+            { id: "B2", propertyName: "Unit 2 - Kilimani Studio", checkin: "2024-01-12", checkout: "2024-01-14", guest: "Jane Smith", rate: 4500, cleaning: 1500, platform: 500, other: 0 },
+            { id: "B3", propertyName: "Unit 3 - Karen Cottage", checkin: "2024-01-15", checkout: "2024-01-20", guest: "Alice Brown", rate: 12000, cleaning: 3500, platform: 2500, other: 500 },
+            { id: "B4", propertyName: "Unit 4 - Lavington Loft", checkin: "2024-01-18", checkout: "2024-01-22", guest: "Bob White", rate: 9500, cleaning: 2500, platform: 1800, other: 0 },
+            { id: "B5", propertyName: "Unit 1 - Westlands Haven", checkin: "2024-01-20", checkout: "2024-01-25", guest: "Charlie Green", rate: 8500, cleaning: 2000, platform: 1600, other: 0 },
+            { id: "B6", propertyName: "Unit 6 - Kileleshwa Pad", checkin: "2024-01-22", checkout: "2024-01-28", guest: "Diana Black", rate: 5000, cleaning: 1500, platform: 800, other: 0 },
+            { id: "B7", propertyName: "Unit 8 - Nyari Villa", checkin: "2024-01-25", checkout: "2024-01-30", guest: "Evan Davis", rate: 15000, cleaning: 4000, platform: 3000, other: 1000 },
+            { id: "B8", propertyName: "Unit 2 - Kilimani Studio", checkin: "2024-01-28", checkout: "2024-02-02", guest: "Fiona Blue", rate: 4500, cleaning: 1500, platform: 600, other: 0 }
+        ];
+
+        // STATE MANAGEMENT
+        let properties = [];
+        let bookings = [];
+        let revChartInstance = null;
+        let monthlyChartInstance = null;
+
+        function loadState() {
+            try {
+                const storedProps = localStorage.getItem("millycozy_properties");
+                const storedBooks = localStorage.getItem("millycozy_bookings");
+                properties = storedProps ? JSON.parse(storedProps) : JSON.parse(JSON.stringify(DEFAULT_PROPERTIES));
+                bookings = storedBooks ? JSON.parse(storedBooks) : JSON.parse(JSON.stringify(DEFAULT_BOOKINGS));
+            } catch (e) {
+                console.error("Storage load error:", e);
+                properties = JSON.parse(JSON.stringify(DEFAULT_PROPERTIES));
+                bookings = JSON.parse(JSON.stringify(DEFAULT_BOOKINGS));
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem("millycozy_properties", JSON.stringify(properties));
+            localStorage.setItem("millycozy_bookings", JSON.stringify(bookings));
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            document.getElementById("toast-msg").innerText = msg;
+            toast.classList.remove("translate-y-20", "opacity-0");
+            setTimeout(() => {
+                toast.classList.add("translate-y-20", "opacity-0");
+            }, 3000);
+        }
+
+        function resetData() {
+            if (confirm("Are you sure you want to reset all properties and booking records back to the default original data?")) {
+                localStorage.removeItem("millycozy_properties");
+                localStorage.removeItem("millycozy_bookings");
+                loadState();
+                populateYearDropdown();
+                renderAllTabs();
+                showToast("Data successfully reset to default state!");
+            }
+        }
+
+        // TAB SWITCHING
+        function switchTab(tabId) {
+            document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+            document.getElementById("tab-" + tabId).classList.remove("hidden");
+
+            document.querySelectorAll(".nav-btn").forEach(btn => {
+                btn.classList.remove("text-teal-400", "bg-slate-800");
+                btn.classList.add("text-slate-300");
+            });
+            const activeNav = document.getElementById("nav-" + tabId);
+            if (activeNav) {
+                activeNav.classList.add("text-teal-400", "bg-slate-800");
+                activeNav.classList.remove("text-slate-300");
+            }
+
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'bookings') renderBookings();
+            if (tabId === 'properties') renderProperties();
+            if (tabId === 'matrix') renderMatrix();
+        }
+
+        // CALCULATIONS
+        function calcNights(checkin, checkout) {
+            if (!checkin || !checkout) return 0;
+            const d1 = new Date(checkin);
+            const d2 = new Date(checkout);
+            const diff = (d2 - d1) / (1000 * 60 * 60 * 24);
+            return diff > 0 ? Math.round(diff) : 0;
+        }
+
+        function calcBookingFinancials(b) {
+            const nights = calcNights(b.checkin, b.checkout);
+            const gross = (nights * (Number(b.rate) || 0)) + (Number(b.cleaning) || 0);
+            const net = gross - (Number(b.platform) || 0) - (Number(b.other) || 0);
+            return { nights, gross, net };
+        }
+
+        function formatKES(num) {
+            return "KES " + (Number(num) || 0).toLocaleString();
+        }
+
+        // DASHBOARD
+        function renderDashboard() {
+            let totalGross = 0;
+            let totalNet = 0;
+            let totalFees = 0;
+            let totalNights = 0;
+
+            const propStats = {};
+            properties.forEach(p => {
+                propStats[p.name] = {
+                    id: p.id,
+                    name: p.name,
+                    location: p.location,
+                    fixedCost: p.fixedCost,
+                    bookingsCount: 0,
+                    nights: 0,
+                    gross: 0,
+                    net: 0
+                };
+            });
+
+            bookings.forEach(b => {
+                const fin = calcBookingFinancials(b);
+                totalGross += fin.gross;
+                totalNet += fin.net;
+                totalFees += (Number(b.platform) || 0) + (Number(b.other) || 0);
+                totalNights += fin.nights;
+
+                if (propStats[b.propertyName]) {
+                    propStats[b.propertyName].bookingsCount += 1;
+                    propStats[b.propertyName].nights += fin.nights;
+                    propStats[b.propertyName].gross += fin.gross;
+                    propStats[b.propertyName].net += fin.net;
+                }
+            });
+
+            const totalFixed = properties.reduce((sum, p) => sum + (Number(p.fixedCost) || 0), 0);
+            const avgGrossPerNight = totalNights > 0 ? totalGross / totalNights : 0;
+
+            document.getElementById("dash-gross").innerText = formatKES(totalGross);
+            document.getElementById("dash-net").innerText = formatKES(totalNet);
+            document.getElementById("dash-fees").innerText = formatKES(totalFees);
+            document.getElementById("dash-nights").innerText = totalNights;
+            document.getElementById("dash-avg").innerText = formatKES(avgGrossPerNight);
+            document.getElementById("dash-fixed").innerText = formatKES(totalFixed);
+
+            // Table breakdown
+            const tbody = document.getElementById("dash-property-table");
+            tbody.innerHTML = "";
+            Object.values(propStats).forEach(p => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-800/50 transition";
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-100">${p.name}</td>
+                    <td class="p-3 text-slate-400">${p.location}</td>
+                    <td class="p-3 text-center">${p.bookingsCount}</td>
+                    <td class="p-3 text-center">${p.nights}</td>
+                    <td class="p-3 text-right text-rose-300">${formatKES(p.fixedCost)}</td>
+                    <td class="p-3 text-right font-semibold text-teal-400">${formatKES(p.gross)}</td>
+                    <td class="p-3 text-right font-bold text-emerald-400">${formatKES(p.net)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            renderCharts(propStats);
+        }
+
+        function renderCharts(propStats) {
+            const labels = Object.values(propStats).map(p => p.name.split(' - ')[1] || p.name);
+            const grossData = Object.values(propStats).map(p => p.gross);
+            const netData = Object.values(propStats).map(p => p.net);
+
+            if (revChartInstance) revChartInstance.destroy();
+            const ctx1 = document.getElementById("chartRevenue").getContext("2d");
+            revChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Gross Revenue', data: grossData, backgroundColor: '#2dd4bf' },
+                        { label: 'Net Revenue', data: netData, backgroundColor: '#34d399' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    }
+                }
+            });
+
+            // Monthly Trend
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthlyGross = new Array(12).fill(0);
+            const monthlyNet = new Array(12).fill(0);
+
+            bookings.forEach(b => {
+                if (b.checkin) {
+                    const m = new Date(b.checkin).getMonth();
+                    const fin = calcBookingFinancials(b);
+                    monthlyGross[m] += fin.gross;
+                    monthlyNet[m] += fin.net;
+                }
+            });
+
+            if (monthlyChartInstance) monthlyChartInstance.destroy();
+            const ctx2 = document.getElementById("chartMonthly").getContext("2d");
+            monthlyChartInstance = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        { label: 'Gross', data: monthlyGross, borderColor: '#2dd4bf', backgroundColor: 'rgba(45, 212, 191, 0.1)', fill: true, tension: 0.3 },
+                        { label: 'Net', data: monthlyNet, borderColor: '#34d399', backgroundColor: 'rgba(52, 211, 153, 0.1)', fill: true, tension: 0.3 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    }
+                }
+            });
+        }
+
+        // BOOKINGS LOG
+        function populateBookingPropDropdown() {
+            const select = document.getElementById("book-prop-name");
+            const filterSelect = document.getElementById("booking-filter-property");
+            select.innerHTML = "";
+            filterSelect.innerHTML = '<option value="">All Properties</option>';
+
+            properties.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p.name;
+                opt.innerText = p.name;
+                select.appendChild(opt);
+
+                const optFilter = document.createElement("option");
+                optFilter.value = p.name;
+                optFilter.innerText = p.name;
+                filterSelect.appendChild(optFilter);
+            });
+        }
+
+        function renderBookings() {
+            populateBookingPropDropdown();
+            const search = document.getElementById("booking-search").value.toLowerCase();
+            const filterProp = document.getElementById("booking-filter-property").value;
+            const sortBy = document.getElementById("booking-sort").value;
+
+            let filtered = bookings.filter(b => {
+                const matchSearch = (b.guest || "").toLowerCase().includes(search) || (b.propertyName || "").toLowerCase().includes(search);
+                const matchProp = !filterProp || b.propertyName === filterProp;
+                return matchSearch && matchProp;
+            });
+
+            filtered.sort((a, b) => {
+                if (sortBy === 'checkin-desc') return new Date(b.checkin) - new Date(a.checkin);
+                if (sortBy === 'checkin-asc') return new Date(a.checkin) - new Date(b.checkin);
+                if (sortBy === 'gross-desc') return calcBookingFinancials(b).gross - calcBookingFinancials(a).gross;
+                return 0;
+            });
+
+            const tbody = document.getElementById("booking-table-body");
+            tbody.innerHTML = "";
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="p-6 text-center text-slate-500">No booking records found.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(b => {
+                const fin = calcBookingFinancials(b);
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-800/50 transition";
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-200">${b.propertyName}</td>
+                    <td class="p-3 text-slate-300">${b.guest}</td>
+                    <td class="p-3 text-slate-400 font-mono text-[11px]">${b.checkin} → ${b.checkout}</td>
+                    <td class="p-3 text-center font-bold text-amber-400">${fin.nights}</td>
+                    <td class="p-3 text-right">${formatKES(b.rate)}</td>
+                    <td class="p-3 text-right text-slate-400">${formatKES(b.cleaning)}</td>
+                    <td class="p-3 text-right text-rose-400">${formatKES(b.platform)}</td>
+                    <td class="p-3 text-right text-rose-400">${formatKES(b.other)}</td>
+                    <td class="p-3 text-right font-semibold text-teal-400">${formatKES(fin.gross)}</td>
+                    <td class="p-3 text-right font-bold text-emerald-400">${formatKES(fin.net)}</td>
+                    <td class="p-3 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <button onclick="editBooking('${b.id}')" class="p-1.5 text-slate-400 hover:text-teal-400 transition" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteBooking('${b.id}')" class="p-1.5 text-slate-400 hover:text-rose-400 transition" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function calculateBookingTotal() {
+            const checkin = document.getElementById("book-checkin").value;
+            const checkout = document.getElementById("book-checkout").value;
+            const rate = Number(document.getElementById("book-rate").value) || 0;
+            const cleaning = Number(document.getElementById("book-cleaning").value) || 0;
+            const platform = Number(document.getElementById("book-platform").value) || 0;
+            const other = Number(document.getElementById("book-other").value) || 0;
+
+            const nights = calcNights(checkin, checkout);
+            const gross = (nights * rate) + cleaning;
+            const net = gross - platform - other;
+
+            document.getElementById("calc-nights").innerText = nights;
+            document.getElementById("calc-gross").innerText = formatKES(gross);
+            document.getElementById("calc-net").innerText = formatKES(net);
+        }
+
+        function openBookingModal(editId = null) {
+            populateBookingPropDropdown();
+            document.getElementById("booking-form").reset();
+            document.getElementById("book-id").value = "";
+            document.getElementById("booking-modal-title").innerText = "Record New Booking";
+
+            if (editId) {
+                const b = bookings.find(item => item.id === editId);
+                if (b) {
+                    document.getElementById("book-id").value = b.id;
+                    document.getElementById("book-prop-name").value = b.propertyName;
+                    document.getElementById("book-guest").value = b.guest;
+                    document.getElementById("book-checkin").value = b.checkin;
+                    document.getElementById("book-checkout").value = b.checkout;
+                    document.getElementById("book-rate").value = b.rate;
+                    document.getElementById("book-cleaning").value = b.cleaning || 0;
+                    document.getElementById("book-platform").value = b.platform || 0;
+                    document.getElementById("book-other").value = b.other || 0;
+                    document.getElementById("booking-modal-title").innerText = "Edit Booking";
+                }
+            }
+            calculateBookingTotal();
+            document.getElementById("booking-modal").classList.remove("hidden");
+        }
+
+        function closeBookingModal() {
+            document.getElementById("booking-modal").classList.add("hidden");
+        }
+
+        function handleSaveBooking(e) {
+            e.preventDefault();
+            const id = document.getElementById("book-id").value;
+            const newObj = {
+                id: id || "B" + Date.now(),
+                propertyName: document.getElementById("book-prop-name").value,
+                guest: document.getElementById("book-guest").value,
+                checkin: document.getElementById("book-checkin").value,
+                checkout: document.getElementById("book-checkout").value,
+                rate: Number(document.getElementById("book-rate").value) || 0,
+                cleaning: Number(document.getElementById("book-cleaning").value) || 0,
+                platform: Number(document.getElementById("book-platform").value) || 0,
+                other: Number(document.getElementById("book-other").value) || 0
+            };
+
+            if (id) {
+                const idx = bookings.findIndex(b => b.id === id);
+                if (idx !== -1) bookings[idx] = newObj;
+            } else {
+                bookings.push(newObj);
+            }
+
+            saveState();
+            closeBookingModal();
+            populateYearDropdown();
+            renderAllTabs();
+            showToast(id ? "Booking updated!" : "New booking added!");
+        }
+
+        function editBooking(id) {
+            openBookingModal(id);
+        }
+
+        function deleteBooking(id) {
+            if (confirm("Are you sure you want to delete this booking record?")) {
+                bookings = bookings.filter(b => b.id !== id);
+                saveState();
+                populateYearDropdown();
+                renderAllTabs();
+                showToast("Booking deleted.");
+            }
+        }
+
+        // PROPERTIES PORTFOLIO
+        function renderProperties() {
+            const container = document.getElementById("property-cards-container");
+            container.innerHTML = "";
+
+            if (properties.length === 0) {
+                container.innerHTML = `<div class="col-span-full p-8 text-center text-slate-500 glass-panel rounded-xl">No properties in portfolio. Click "Add Property Unit" above to add one.</div>`;
+                return;
+            }
+
+            properties.forEach(p => {
+                const unitBookings = bookings.filter(b => b.propertyName === p.name);
+                const totalGross = unitBookings.reduce((sum, b) => sum + calcBookingFinancials(b).gross, 0);
+
+                const card = document.createElement("div");
+                card.className = "glass-panel p-5 rounded-xl border border-slate-700/60 flex flex-col justify-between hover:border-teal-500/50 transition";
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="px-2 py-0.5 bg-teal-500/10 text-teal-400 font-mono text-[10px] rounded border border-teal-500/20">${p.id}</span>
+                                <h3 class="font-bold text-base text-white mt-1">${p.name}</h3>
+                                <p class="text-xs text-slate-400"><i class="fa-solid fa-location-dot text-rose-400 mr-1"></i>${p.location} • ${p.bedrooms} Bed</p>
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="editProperty('${p.id}')" class="p-1.5 text-slate-400 hover:text-teal-400 transition" title="Edit Unit"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button onclick="deleteProperty('${p.id}')" class="p-1.5 text-slate-400 hover:text-rose-400 transition" title="Delete Unit"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-800 grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                                <p class="text-slate-400 text-[10px]">Monthly Fixed Cost</p>
+                                <p class="font-bold text-rose-300 mt-0.5">${formatKES(p.fixedCost)}</p>
+                            </div>
+                            <div>
+                                <p class="text-slate-400 text-[10px]">Total Generated Revenue</p>
+                                <p class="font-bold text-teal-400 mt-0.5">${formatKES(totalGross)}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openPropertyModal(editId = null) {
+            document.getElementById("property-form").reset();
+            document.getElementById("prop-id").value = "";
+            document.getElementById("prop-modal-title").innerText = "Add New Property Unit";
+
+            if (editId) {
+                const p = properties.find(item => item.id === editId);
+                if (p) {
+                    document.getElementById("prop-id").value = p.id;
+                    document.getElementById("prop-name").value = p.name;
+                    document.getElementById("prop-location").value = p.location;
+                    document.getElementById("prop-bedrooms").value = p.bedrooms;
+                    document.getElementById("prop-fixed-cost").value = p.fixedCost;
+                    document.getElementById("prop-modal-title").innerText = "Edit Property Unit";
+                }
+            }
+            document.getElementById("property-modal").classList.remove("hidden");
+        }
+
+        function closePropertyModal() {
+            document.getElementById("property-modal").classList.add("hidden");
+        }
+
+        function handleSaveProperty(e) {
+            e.preventDefault();
+            const id = document.getElementById("prop-id").value;
+            const name = document.getElementById("prop-name").value.trim();
+            const location = document.getElementById("prop-location").value.trim();
+            const bedrooms = Number(document.getElementById("prop-bedrooms").value) || 1;
+            const fixedCost = Number(document.getElementById("prop-fixed-cost").value) || 0;
+
+            if (id) {
+                const idx = properties.findIndex(p => p.id === id);
+                if (idx !== -1) {
+                    const oldName = properties[idx].name;
+                    properties[idx] = { id, name, location, bedrooms, fixedCost };
+                    // update name in bookings if changed
+                    if (oldName !== name) {
+                        bookings.forEach(b => { if (b.propertyName === oldName) b.propertyName = name; });
+                    }
+                }
+            } else {
+                const newId = "U" + String(properties.length + 1).padStart(2, '0');
+                properties.push({ id: newId, name, location, bedrooms, fixedCost });
+            }
+
+            saveState();
+            closePropertyModal();
+            renderAllTabs();
+            showToast(id ? "Property updated!" : "New property unit created!");
+        }
+
+        function editProperty(id) {
+            openPropertyModal(id);
+        }
+
+        function deleteProperty(id) {
+            const p = properties.find(item => item.id === id);
+            if (!p) return;
+            if (confirm(`Are you sure you want to delete "${p.name}"? Bookings associated with this unit will remain in log.`)) {
+                properties = properties.filter(item => item.id !== id);
+                saveState();
+                renderAllTabs();
+                showToast("Property unit deleted.");
+            }
+        }
+
+        // AVAILABILITY MATRIX & YEAR FILTER FIX
+        function populateYearDropdown() {
+            const yearSelect = document.getElementById("matrix-year");
+            const currentSelected = yearSelect.value;
+            
+            // Extract all unique years from booking dates + current year
+            const years = new Set([new Date().getFullYear(), 2024, 2025, 2026]);
+            bookings.forEach(b => {
+                if (b.checkin) years.add(new Date(b.checkin).getFullYear());
+                if (b.checkout) years.add(new Date(b.checkout).getFullYear());
+            });
+
+            const sortedYears = Array.from(years).sort((a, b) => a - b);
+            yearSelect.innerHTML = "";
+            sortedYears.forEach(y => {
+                const opt = document.createElement("option");
+                opt.value = y;
+                opt.innerText = y;
+                yearSelect.appendChild(opt);
+            });
+
+            if (currentSelected && sortedYears.includes(Number(currentSelected))) {
+                yearSelect.value = currentSelected;
+            } else if (sortedYears.includes(2024)) {
+                yearSelect.value = "2024"; // default matching seed data year
+            } else {
+                yearSelect.value = new Date().getFullYear();
+            }
+        }
+
+        function renderMatrix() {
+            const yearSelect = document.getElementById("matrix-year");
+            const monthSelect = document.getElementById("matrix-month");
+
+            if (!yearSelect.value) populateYearDropdown();
+
+            const year = parseInt(yearSelect.value) || new Date().getFullYear();
+            const month = parseInt(monthSelect.value) || 0;
+
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const container = document.getElementById("matrix-grid-container");
+
+            let html = `<table class="w-full text-center border-collapse text-xs">`;
+            html += `<thead><tr class="bg-slate-800 text-slate-300">`;
+            html += `<th class="p-2 border border-slate-700 text-left min-w-[160px]">Property Unit</th>`;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateObj = new Date(year, month, d);
+                const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                html += `<th class="p-1 border border-slate-700 w-8 ${isWeekend ? 'bg-slate-800/80 text-teal-400 font-bold' : ''}">${d}</th>`;
+            }
+            html += `</tr></thead><tbody>`;
+
+            properties.forEach(p => {
+                html += `<tr class="hover:bg-slate-800/30">`;
+                html += `<td class="p-2 border border-slate-700 text-left font-semibold text-slate-200 truncate">${p.name}</td>`;
+
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const currentCellDate = new Date(year, month, d);
+                    currentCellDate.setHours(0,0,0,0);
+
+                    // Find if any booking covers this day
+                    const activeBooking = bookings.find(b => {
+                        if (b.propertyName !== p.name) return false;
+                        const inDate = new Date(b.checkin);
+                        const outDate = new Date(b.checkout);
+                        inDate.setHours(0,0,0,0);
+                        outDate.setHours(0,0,0,0);
+                        return currentCellDate >= inDate && currentCellDate < outDate;
+                    });
+
+                    if (activeBooking) {
+                        html += `<td class="p-1 border border-slate-700 bg-teal-500/30 text-teal-300 font-bold text-[10px]" title="Guest: ${activeBooking.guest} (${activeBooking.checkin} to ${activeBooking.checkout})">■</td>`;
+                    } else {
+                        html += `<td class="p-1 border border-slate-700 text-slate-700 text-[10px]">·</td>`;
+                    }
+                }
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        // CSV EXPORT
+        function exportBookingsCSV() {
+            let csv = "Property Name,Guest Name,Check-In,Check-Out,Nights,Nightly Rate,Cleaning Fee,Platform Fees,Other Expenses,Gross Income,Net Income\n";
+            bookings.forEach(b => {
+                const fin = calcBookingFinancials(b);
+                csv += `"${b.propertyName}","${b.guest}",${b.checkin},${b.checkout},${fin.nights},${b.rate},${b.cleaning || 0},${b.platform || 0},${b.other || 0},${fin.gross},${fin.net}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'millycozy_bookings_export.csv');
+            a.click();
+            showToast("Exported Bookings to CSV!");
+        }
+
+        function renderAllTabs() {
+            renderDashboard();
+            renderBookings();
+            renderProperties();
+            renderMatrix();
+        }
+
+        // INITIALIZATION
+        window.addEventListener("DOMContentLoaded", () => {
+            loadState();
+            populateYearDropdown();
+            renderAllTabs();
+        });
+    </script>
+</body>
+</html>
